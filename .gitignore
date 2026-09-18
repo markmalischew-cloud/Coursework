@@ -1,0 +1,103 @@
+# --- Java & JVM ---
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+*.zip
+*.tar.gz
+*.rar
+
+# --- Логи и дампы JVM ---
+*.log
+hs_err_pid*.log
+replay_pid*.log
+
+# --- Инструменты сборки Java (Maven / Gradle) ---
+.gradle/
+build/
+target/
+.layrry/
+*.ipr
+*.iws
+
+# --- Специфика C++ / JNI (Java Native Interface) ---
+*.gch
+*.pch
+*.d
+*.inc
+*.o.d
+# Сгенерированные JNI-заголовки
+*_JNI.h
+*_jni.h
+
+# --- Системные и временные файлы OS ---
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# --- Результаты компиляции ---
+
+*.o
+
+*.obj
+
+*.exe
+
+*.out
+
+*.app
+
+# --- Библиотеки ---
+
+*.a
+
+*.lib
+
+*.so
+
+*.so.*
+
+*.dll
+
+*.dylib
+
+# --- Отладочная информация ---
+
+*.pdb
+
+*.idb
+
+*.ilk
+
+# --- Папки сборки ---
+
+build/
+
+Debug/
+
+Release/
+
+x64/
+
+out/
+
+# --- Служебные файлы IDE ---
+
+.vs/
+
+.vscode/
+
+.idea/
+
+*.user
+
+# --- CMake ---
+
+CMakeFiles/
+
+CMakeCache.txt
+
+cmake_install.cmake 
