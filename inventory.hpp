@@ -18,7 +18,7 @@ class Inventory
 {
     public:
         
-        Inventory()                            = default;
+        Inventory();
         Inventory(const Inventory&)            = delete;
         Inventory(Inventory&&)                 = delete;
         Inventory& operator=(const Inventory&) = delete;

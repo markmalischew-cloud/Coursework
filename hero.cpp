@@ -33,6 +33,9 @@ Hero::Hero(std::string_view name, int health, int mana, int gold)
     {
         m_gold = 0;
     }
+
+    std::cout << "[Герой] Создан: " << m_name << "\n";
+
 }
 
 Hero::~Hero()

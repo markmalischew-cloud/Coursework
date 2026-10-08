@@ -26,6 +26,8 @@ Item::Item(std::string_view name, ItemType type, ItemRarity rarity, int price)
     {
         m_name = "Неизвестный предмет";
     }
+
+    std::cout << "[Предмет] Создан: " << m_name << "\n";
  
     switch (m_type)
     {

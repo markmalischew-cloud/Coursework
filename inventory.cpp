@@ -8,6 +8,11 @@
 namespace game
 {
 
+Inventory::Inventory()
+{
+    std::cout << "[Инвентарь] Создан\n";
+}
+
 Inventory::~Inventory()
 {
     std::cout << "[Инвентарь] Уничтожен\n";
