@@ -26,7 +26,7 @@ class Inventory
         ~Inventory();
 
         bool AddItem(Item* item);
-        bool RemoveItem(std::size_t index);
+        Item* RemoveItem(std::size_t index);
         void PrintItems() const;
 
     [[nodiscard]] std::size_t GetSize() const 
