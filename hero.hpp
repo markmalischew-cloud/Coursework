@@ -4,6 +4,9 @@
 #pragma once
 
 #include "inventory.hpp"
+
+#include <cstddef>
+#include <memory>
 #include <string>
 #include <string_view>
 
@@ -22,19 +25,23 @@ public:
 
     void TakeDamage(int damage);
     bool UseMana(int amount);
-    
+
     bool SpendGold(int amount);
     void EarnGold(int amount);
 
-    bool PickUpItem(Item* item);
-    bool DropItem(std::size_t index);
+    bool PickUpItem(const std::shared_ptr<Item>& item);
+    std::shared_ptr<Item> DropItem(std::size_t index);
+
+    bool EquipItem(std::size_t index);
+    void ShowEquipped() const;
+
     void Inspect() const;
 
     [[nodiscard]] std::string_view GetName() const { return m_name; }
     [[nodiscard]] int GetHealth() const { return m_health; }
     [[nodiscard]] int GetMana() const { return m_mana; }
     [[nodiscard]] int GetGold() const { return m_gold; }
-    [[nodiscard]] const Inventory& GetInventory() const { return m_inventory; }
+    [[nodiscard]] std::size_t GetInventorySize() const { return m_inventory.GetSize(); }
 
 private:
     std::string m_name;
@@ -42,6 +49,10 @@ private:
     int         m_mana{ 50 };
     int         m_gold{ 0 };
 
+    // Герой пользуется экипировкой, но не владеет ею: предмет может исчезнуть
+    std::weak_ptr<Item> m_equipped;
+
+    // Композиция: инвентарь по значению
     Inventory   m_inventory;
 };
 
