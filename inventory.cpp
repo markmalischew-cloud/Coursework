@@ -3,8 +3,11 @@
 //
 
 #include "inventory.hpp"
-#include <iostream>
+
 #include <algorithm>
+#include <iostream>
+#include <iterator>
+#include <utility>
 
 namespace game
 {
@@ -19,23 +22,23 @@ Inventory::~Inventory()
     std::cout << "[Инвентарь] Уничтожен\n";
 }
 
-bool Inventory::AddItem(Item* item)
+bool Inventory::AddItem(const std::shared_ptr<Item>& item)
 {
-    const auto end = m_items.begin() + m_size;
+    const auto first = std::begin(m_items);
+    const auto last  = first + m_size;
 
-    if (item == nullptr
-        || m_size >= m_items.size()
-        || std::find(m_items.begin(), end, item) != end)
+    if (!item || m_size >= CAPACITY || std::find(first, last, item) != last)
     {
         std::cout << "[Инвентарь] Ошибка: не удалось добавить предмет!\n";
         return false;
     }
 
-    m_items[m_size++] = item;
+    m_items[m_size] = item;
+    ++m_size;
     return true;
 }
 
-Item* Inventory::RemoveItem(std::size_t index)
+std::shared_ptr<Item> Inventory::RemoveItem(std::size_t index)
 {
     if (index >= m_size)
     {
@@ -43,29 +46,32 @@ Item* Inventory::RemoveItem(std::size_t index)
         return nullptr;
     }
 
-    Item* removed = m_items[index];
+    std::shared_ptr<Item> removed = std::move(m_items[index]);
 
-    std::rotate(m_items.begin() + index,
-                m_items.begin() + index + 1,
-                m_items.begin() + m_size);
-    m_items[--m_size] = nullptr;
+    const auto first = std::begin(m_items);
+    std::rotate(first + index, first + index + 1, first + m_size);
+    --m_size;
 
     return removed;
 }
 
-const Item* Inventory::GetItem(std::size_t index) const
+std::shared_ptr<Item> Inventory::GetItem(std::size_t index) const
 {
-    return index < m_size ? m_items.at(index) : nullptr;
+    if (index >= m_size)
+    {
+        return nullptr;
+    }
+    return m_items[index];
 }
 
 void Inventory::PrintItems() const
 {
-    std::cout << "--- Инвентарь (" << m_size << "/" << m_items.size() << ") ---\n";
+    std::cout << "--- Инвентарь (" << m_size << "/" << CAPACITY << ") ---\n";
 
-    std::size_t slot = 0;
-    for (auto it = m_items.begin(); it != m_items.begin() + m_size; ++it, ++slot)
+    for (std::size_t i = 0; i < m_size; ++i)
     {
-        std::cout << " Слот " << slot << ": " << (*it)->GetName() << "\n";
+        std::cout << " Слот " << i << ": " << m_items[i]->GetName()
+                  << " (владельцев: " << m_items[i].use_count() << ")\n";
     }
 }
 

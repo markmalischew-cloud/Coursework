@@ -1,6 +1,6 @@
 //
 // ФАЙЛ item.hpp
-// 
+//
 #pragma once
 
 #include <cstdint>
@@ -32,9 +32,9 @@ class Item
 public:
     Item(std::string_view name, ItemType type, ItemRarity rarity, int price);
     Item(const Item&)            = delete;
-    Item(Item&&)                 = delete;  
-    Item& operator=(const Item&) = delete;  
-    Item& operator=(Item&&)      = delete;  
+    Item(Item&&)                 = delete;
+    Item& operator=(const Item&) = delete;
+    Item& operator=(Item&&)      = delete;
     ~Item();
 
     [[nodiscard]] std::string_view GetName() const
@@ -46,12 +46,12 @@ public:
     {
         return m_type;
     }
-           
+
     [[nodiscard]] ItemRarity GetRarity() const
     {
         return m_rarity;
     }
-       
+
     [[nodiscard]] int GetPrice() const
     {
         return m_price;
