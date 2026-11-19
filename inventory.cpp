@@ -4,9 +4,12 @@
 
 #include "inventory.hpp"
 
+#include "game_error.hpp"
+
 #include <algorithm>
 #include <iostream>
 #include <iterator>
+#include <stdexcept>
 #include <string>
 #include <utility>
 
@@ -60,7 +63,7 @@ Inventory& Inventory::operator=(Inventory&& other) noexcept
     return *this;
 }
 
-Inventory::~Inventory()
+Inventory::~Inventory() noexcept
 {
     std::cout << "[Инвентарь] Уничтожен\n";
 }
@@ -74,28 +77,36 @@ void Inventory::Clear()
     m_size = 0;
 }
 
-bool Inventory::AddItem(const std::shared_ptr<Item>& item)
+void Inventory::AddItem(const std::shared_ptr<Item>& item)
 {
+    // Все проверки идут до изменения инвентаря: гарантия "всё или ничего"
+    if (!item)
+    {
+        throw std::invalid_argument{ "предмет не задан" };
+    }
+
     const auto first = std::begin(m_items);
     const auto last  = first + m_size;
 
-    if (!item || m_size >= CAPACITY || std::find(first, last, item) != last)
+    if (std::find(first, last, item) != last)
     {
-        std::cout << "[Инвентарь] Ошибка: не удалось добавить предмет!\n";
-        return false;
+        throw std::invalid_argument{ "этот предмет уже лежит в инвентаре" };
+    }
+
+    if (m_size >= CAPACITY)
+    {
+        throw InventoryFullError{ CAPACITY };
     }
 
     m_items[m_size] = item;
     ++m_size;
-    return true;
 }
 
 std::shared_ptr<Item> Inventory::RemoveItem(std::size_t index)
 {
     if (index >= m_size)
     {
-        std::cout << "[Инвентарь] Ошибка: неверный индекс для удаления!\n";
-        return nullptr;
+        throw std::out_of_range{ "неверный индекс слота: " + std::to_string(index) };
     }
 
     std::shared_ptr<Item> removed = std::move(m_items[index]);
@@ -111,7 +122,7 @@ std::shared_ptr<Item> Inventory::GetItem(std::size_t index) const
 {
     if (index >= m_size)
     {
-        return nullptr;
+        throw std::out_of_range{ "в слоте " + std::to_string(index) + " нет предмета" };
     }
     return m_items[index];
 }

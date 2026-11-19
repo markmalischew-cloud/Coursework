@@ -19,7 +19,7 @@ public:
     Room(Room&&)                 = delete;
     Room& operator=(const Room&) = delete;
     Room& operator=(Room&&)      = delete;
-    ~Room();
+    ~Room() noexcept;
 
     void Rename(std::string_view name);
 

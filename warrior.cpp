@@ -16,12 +16,12 @@ Warrior::Warrior()
 }
 
 Warrior::Warrior(std::string_view name, int gold)
-    : BaseHero{ name, 150, 30, 5, gold } // сначала — базовая часть
+    : BaseHero{ name, 150, 30, 5, gold }
 {
     std::cout << "[Воин] Создан: " << GetName() << "\n";
 }
 
-Warrior::~Warrior()
+Warrior::~Warrior() noexcept
 {
     std::cout << "[Воин] Уничтожен: " << (GetName().empty() ? "<перемещён>" : GetName()) << "\n";
 }
@@ -40,6 +40,11 @@ std::string Warrior::Describe() const
 {
     return BaseHero::Describe() + " | Бонус классового оружия: +"
          + std::to_string(WEAPON_BONUS_PERCENT) + "%";
+}
+
+int Warrior::CastSpell(SpellElement element)
+{
+    return PerformSpell(element, SPELL_BONUS_PERCENT);
 }
 
 } // namespace game

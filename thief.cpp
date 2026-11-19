@@ -21,7 +21,7 @@ Thief::Thief(std::string_view name, int gold)
     std::cout << "[Вор] Создан: " << GetName() << "\n";
 }
 
-Thief::~Thief()
+Thief::~Thief() noexcept
 {
     std::cout << "[Вор] Уничтожен: " << (GetName().empty() ? "<перемещён>" : GetName()) << "\n";
 }
@@ -34,6 +34,11 @@ int Thief::GetAttackDamage() const
 std::unique_ptr<BaseHero> Thief::Clone() const
 {
     return std::make_unique<Thief>(*this);
+}
+
+int Thief::CastSpell(SpellElement element)
+{
+    return PerformSpell(element, SPELL_BONUS_PERCENT);
 }
 
 } // namespace game

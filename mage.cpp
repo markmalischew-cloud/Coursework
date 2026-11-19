@@ -21,7 +21,7 @@ Mage::Mage(std::string_view name, int gold)
     std::cout << "[Маг] Создан: " << GetName() << "\n";
 }
 
-Mage::~Mage()
+Mage::~Mage() noexcept
 {
     std::cout << "[Маг] Уничтожен: " << (GetName().empty() ? "<перемещён>" : GetName()) << "\n";
 }
@@ -41,6 +41,11 @@ std::string Mage::Describe() const
     // Базовая версия не вызывается; protected-метод Header() доступен наследнику
     return "Маг " + Header() + " | Мана: " + std::to_string(GetMana())
          + " | Бонус заклинаний: +" + std::to_string(SPELL_BONUS_PERCENT) + "%";
+}
+
+int Mage::CastSpell(SpellElement element)
+{
+    return PerformSpell(element, SPELL_BONUS_PERCENT);
 }
 
 } // namespace game

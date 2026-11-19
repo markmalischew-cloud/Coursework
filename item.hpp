@@ -35,7 +35,7 @@ public:
     Item(Item&&)                 = delete;
     Item& operator=(const Item&) = delete;
     Item& operator=(Item&&)      = delete;
-    ~Item();
+    ~Item() noexcept;
 
     [[nodiscard]] std::string_view GetName() const
     {
