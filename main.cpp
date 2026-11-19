@@ -2,161 +2,241 @@
 // ФАЙЛ main.cpp
 //
 
-#include "hero.hpp"
-#include "inventory.hpp"
+#include "combat.hpp"
+#include "game_error.hpp"
+#include "i_combatant.hpp"
+#include "i_spell_caster.hpp"
 #include "item.hpp"
+#include "mage.hpp"
+#include "monster.hpp"
+#include "monster_tactics.hpp"
+#include "thief.hpp"
+#include "warrior.hpp"
 
+#include <exception>
 #include <iostream>
 #include <memory>
-#include <utility>
+#include <stdexcept>
 
 namespace
 {
 
-void DemoUniquePtr()
+void DemoInterface()
 {
-    std::cout << "\n=== 4. unique_ptr: один владелец ===\n";
+    std::cout << "\n=== 1. ИНТЕРФЕЙС ICombatant ===\n\n";
 
-    {
-        std::cout << "-- вход в блок\n";
-        const auto hero = std::make_unique<game::Hero>("Артур", 100, 50, 30);
-        hero->Inspect();
-        std::cout << "-- выход из блока\n";
-    }
-    std::cout << "-- блок завершён, освобождать память вручную не пришлось\n";
+    game::Warrior conan{ "Конан", 100 };
+    game::Monster goblin{ "Гоблин", 100, 12, std::make_unique<game::AggressiveTactic>() };
 
-    auto first = std::make_unique<game::Hero>("Марк", 70, 120, 10);
-    std::cout << "first: " << (first ? "владеет героем" : "пуст") << "\n";
+    std::cout << "\n-- Attack() знает только контракт ICombatant:\n";
+    game::Attack(conan, goblin);   // герой бьёт монстра
+    game::Attack(goblin, conan);   // монстр бьёт героя
 
-    auto second = std::move(first);
-    std::cout << "после std::move\n";
-    std::cout << "first:  " << (first ? "владеет героем" : "пуст") << "\n";
-    std::cout << "second: " << (second ? "владеет героем" : "пуст") << "\n";
-    std::cout << "-- конец функции\n";
+    std::cout << "\n-- конец функции\n";
 }
 
-void DemoSharedPtr()
+void DemoMultipleInheritance()
 {
-    std::cout << "\n=== 5. shared_ptr: несколько владельцев ===\n";
+    std::cout << "\n=== 2. МНОЖЕСТВЕННОЕ НАСЛЕДОВАНИЕ ===\n\n";
 
-    auto shield = std::make_shared<game::Item>("Щит стража", game::ItemType::eArmor,
-                                               game::ItemRarity::eUncommon, 120);
-    std::cout << "владельцев: " << shield.use_count() << "\n";
+    game::Mage merlin{ "Мерлин", 40 };
 
-    {
-        game::Hero hero{ "Эльза", 120, 40, 100 };
-        hero.PickUpItem(shield);
-        std::cout << "герой подобрал, владельцев: " << shield.use_count() << "\n";
+    // Один и тот же объект, три разных взгляда на него
+    game::BaseHero&     asHero      = merlin;
+    game::ICombatant&   asCombatant = merlin;
+    game::ISpellCaster& asCaster    = merlin;
 
-        {
-            const auto copy = shield;
-            std::cout << "создана копия, владельцев: " << shield.use_count() << "\n";
-        }
-        std::cout << "копия уничтожена, владельцев: " << shield.use_count() << "\n";
+    std::cout << "\nкак BaseHero:     " << asHero.GetFullTitle() << "\n";
+    std::cout << "как ICombatant:   удар " << asCombatant.GetAttackDamage() << "\n";
+    std::cout << "как ISpellCaster: ";
+    const int damage = asCaster.CastSpell(game::SpellElement::eFire);
+    std::cout << "заклинание нанесло " << damage << "\n";
 
-        shield.reset();
-        std::cout << "main отказался от предмета, но сумка героя его держит\n";
-        hero.Inspect();
-
-        std::cout << "-- конец блока: герой уничтожается вместе с инвентарём\n";
-    }
-    std::cout << "-- блок завершён\n";
+    std::cout << "\n-- конец функции\n";
 }
 
-void DemoWeakPtr()
+void DemoBinding()
 {
-    std::cout << "\n=== 6. weak_ptr: наблюдатель ===\n";
+    std::cout << "\n=== 3. РАННЕЕ И ПОЗДНЕЕ СВЯЗЫВАНИЕ ===\n\n";
 
-    auto axe = std::make_shared<game::Item>("Боевой топор", game::ItemType::eWeapon,
-                                            game::ItemRarity::eRare, 90);
-    const std::weak_ptr<game::Item> watcher = axe;
-    std::cout << "создан weak_ptr, владельцев: " << axe.use_count() << "\n";
+    game::Warrior warrior{ "Конан", 100 };
+    game::BaseHero& hero = warrior;   // ссылка на базовый класс, внутри воин
 
-    game::Hero hero{ "Брунгильда", 150, 10, 60 };
-    hero.PickUpItem(axe);
-    hero.EquipItem(0);
-    std::cout << "герой экипировал, владельцев: " << axe.use_count()
-              << " (weak_ptr счётчик не увеличил)\n";
-    hero.ShowEquipped();
+    std::cout << "\nGetKind() невиртуальный:\n";
+    std::cout << "  через Warrior:   " << warrior.GetKind() << "\n";
+    std::cout << "  через BaseHero&: " << hero.GetKind() << "   (раннее: выбрано по типу ссылки)\n";
 
-    axe.reset();
-    std::cout << "main отказался от предмета, но инвентарь его держит\n";
-    hero.ShowEquipped();
+    std::cout << "GetClassName() виртуальный:\n";
+    std::cout << "  через Warrior:   " << warrior.GetClassName() << "\n";
+    std::cout << "  через BaseHero&: " << hero.GetClassName() << "   (позднее: выбрано по типу объекта)\n";
 
-    if (const auto locked = watcher.lock())
+    std::cout << "\n-- конец функции\n";
+}
+
+void DemoDynamicCast()
+{
+    std::cout << "\n=== 4. ПРОВЕРКА ТИПА: dynamic_cast ===\n\n";
+
+    game::Mage merlin{ "Мерлин", 40 };
+    game::Monster ogre{ "Огр", 150, 20, std::make_unique<game::AggressiveTactic>() };
+
+    std::cout << "\n-- герой реализует ISpellCaster, колдует:\n";
+    game::CastSpellAt(merlin, ogre, game::SpellElement::eFire);
+
+    std::cout << "\n-- монстр не реализует ISpellCaster, dynamic_cast вернул nullptr:\n";
+    game::CastSpellAt(ogre, merlin, game::SpellElement::eFire);
+
+    std::cout << "\n-- конец функции\n";
+}
+
+void DemoConfiguration()
+{
+    std::cout << "\n=== 5. КОНФИГУРИРОВАНИЕ: ТАКТИКА МОНСТРА ===\n\n";
+
+    std::cout << "-- статическое: тактика задана при создании\n";
+    game::Monster brave{ "Храбрый гоблин", 100, 10, std::make_unique<game::AggressiveTactic>() };
+    game::Monster timid{ "Робкий гоблин", 100, 10, std::make_unique<game::CowardlyTactic>(40) };
+
+    game::Warrior conan{ "Конан", 100 };
+    for (int i = 0; i < 3; ++i)
     {
-        std::cout << "watcher.lock(): предмет жив, владельцев: " << locked.use_count() << "\n";
+        game::Attack(conan, brave);
+        game::Attack(conan, timid);
     }
 
-    hero.DropItem(0);
-    std::cout << "предмет выброшен, последний владелец исчез\n";
+    std::cout << "\nздоровье обоих: " << brave.GetHealthPercent() << "%\n";
+    std::cout << brave.GetName() << " (" << brave.GetTacticName() << "): "
+              << game::ToString(brave.ChooseAction()) << "\n";
+    std::cout << timid.GetName() << " (" << timid.GetTacticName() << "): "
+              << game::ToString(timid.ChooseAction()) << "\n";
 
-    hero.ShowEquipped();
-    if (const auto locked = watcher.lock())
+    std::cout << "\n-- динамическое: тактика меняется во время боя, здоровье то же\n";
+    brave.SetTactic(std::make_unique<game::CowardlyTactic>(40));
+    std::cout << brave.GetName() << ": " << game::ToString(brave.ChooseAction()) << "\n";
+
+    brave.SetTactic(std::make_unique<game::BeggingTactic>(40));
+    std::cout << brave.GetName() << ": " << game::ToString(brave.ChooseAction()) << "\n";
+
+    std::cout << "\n-- конец функции\n";
+}
+
+void DemoExceptions()
+{
+    std::cout << "\n=== 6. ИСКЛЮЧЕНИЯ ===\n";
+
+    std::cout << "\n-- неверные данные при создании героя:\n";
+    try
     {
-        std::cout << "watcher.lock(): предмет жив\n";
+        game::Warrior broken{ "", 100 };
     }
-    else
+    catch (const std::invalid_argument& error)
     {
-        std::cout << "watcher.lock(): пустой указатель, предмет уничтожен expired: "
-                  << std::boolalpha << watcher.expired() << ")\n";
+        std::cout << "Не удалось создать героя: " << error.what() << "\n";
     }
-    std::cout << "-- конец функции\n";
+
+    std::cout << "\n-- нехватка маны (правило 5):\n";
+    game::Warrior conan{ "Конан", 100 };
+    game::Monster dummy{ "Манекен", 200, 0, std::make_unique<game::AggressiveTactic>() };
+
+    try
+    {
+        game::CastSpellAt(conan, dummy, game::SpellElement::eFire);   // нужно 80 маны, есть 30
+        std::cout << "(этой строки не будет)\n";
+    }
+    catch (const game::NotEnoughManaError& error)
+    {
+        std::cout << "Ход пропущен: " << error.what() << "\n";
+    }
+    catch (const game::GameError& error)
+    {
+        std::cout << "Нарушено правило игры: " << error.what() << "\n";
+    }
+    catch (const std::exception& error)
+    {
+        std::cout << "Ошибка: " << error.what() << "\n";
+    }
+    std::cout << "мана после неудачи: " << conan.GetMana() << " (не изменилась)\n";
+
+    std::cout << "\n-- герой выбирает заклинание подешевле:\n";
+    try
+    {
+        game::CastSpellAt(conan, dummy, game::SpellElement::eWater);
+    }
+    catch (const game::GameError& error)
+    {
+        std::cout << "Нарушено правило игры: " << error.what() << "\n";
+    }
+
+    std::cout << "\n-- нехватка золота:\n";
+    try
+    {
+        conan.SpendGold(500);
+    }
+    catch (const game::NotEnoughGoldError& error)
+    {
+        std::cout << "Покупка не удалась: " << error.what() << "\n";
+    }
+    conan.SpendGold(30);
+
+    std::cout << "\n-- смена экипировки в бою (правило 3):\n";
+    const auto sword = std::make_shared<game::Item>("Стальной меч", game::ItemType::eWeapon,
+                                                    game::ItemRarity::eRare, 80);
+    conan.PickUpItem(sword);
+    conan.EnterCombat();
+    try
+    {
+        conan.EquipItem(0);
+    }
+    catch (const game::ForbiddenInCombatError& error)
+    {
+        std::cout << "Отказано: " << error.what() << "\n";
+    }
+    conan.LeaveCombat();
+    conan.EquipItem(0);
+
+    std::cout << "\n-- неверный слот и повторный предмет:\n";
+    try
+    {
+        const auto dropped = conan.DropItem(5);
+    }
+    catch (const std::out_of_range& error)
+    {
+        std::cout << "Ошибка слота: " << error.what() << "\n";
+    }
+
+    try
+    {
+        conan.PickUpItem(sword);
+    }
+    catch (const std::invalid_argument& error)
+    {
+        std::cout << "Ошибка предмета: " << error.what() << "\n";
+    }
+
+    std::cout << "\n-- неверные данные предмета:\n";
+    try
+    {
+        const game::Item bad{ "Меч123", game::ItemType::eWeapon, game::ItemRarity::eCommon, 10 };
+    }
+    catch (const std::invalid_argument& error)
+    {
+        std::cout << "Не удалось создать предмет: " << error.what() << "\n";
+    }
+
+    std::cout << "\n-- конец функции\n";
 }
 
 } // namespace
 
 int main()
 {
-    std::cout << "=== 1. СОЗДАНИЕ ПРЕДМЕТОВ ===\n\n";
-
-    auto sword  = std::make_shared<game::Item>("Экскалибур", game::ItemType::eWeapon,
-                                               game::ItemRarity::eRare, 250);
-    auto potion = std::make_shared<game::Item>("Зелье исцеления", game::ItemType::eConsumable,
-                                               game::ItemRarity::eCommon, 50);
-    auto ring   = std::make_shared<game::Item>("Магическое кольцо", game::ItemType::eTreasure,
-                                               game::ItemRarity::eLegendary, 1000);
-
-    std::cout << "\n=== 2. СОЗДАНИЕ ГЕРОЯ И ТЕСТИРОВАНИЕ МЕХАНИК ===\n\n";
-
-    {
-        game::Hero hero("Arthas", 120, 80, 500);
-
-        hero.Inspect();
-
-        hero.PickUpItem(sword);
-        hero.PickUpItem(potion);
-        hero.PickUpItem(ring);
-
-        hero.UseMana(30);
-        hero.SpendGold(100);
-        hero.EarnGold(50);
-
-        hero.Inspect();
-
-        hero.DropItem(1);
-
-        hero.Inspect();
-
-        std::cout << "\n--- Завершение области видимости (Герой уничтожается) ---\n";
-        std::cout << "\n=== Композиция ===\n";
-    }
-
-    std::cout << "\n=== 3. ПРОВЕРКА ВРЕМЕНИ ЖИЗНИ (Агрегация) ===\n";
-    std::cout << "Герой уничтожен, но предметы живы, их держит main:\n";
-    std::cout << "  " << sword->GetName() << " (владельцев: " << sword.use_count() << ")\n";
-    std::cout << "  " << potion->GetName() << " (владельцев: " << potion.use_count() << ")\n";
-    std::cout << "  " << ring->GetName() << " (владельцев: " << ring.use_count() << ")\n\n";
-
-    sword.reset();
-    potion.reset();
-    ring.reset();
-
-    DemoUniquePtr();
-    DemoSharedPtr();
-    DemoWeakPtr();
+    DemoInterface();
+    DemoMultipleInheritance();
+    DemoBinding();
+    DemoDynamicCast();
+    DemoConfiguration();
+    DemoExceptions();
 
     std::cout << "\n=== Программа успешно завершена ===\n";
-
     return 0;
 }
